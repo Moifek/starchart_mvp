@@ -1,0 +1,13 @@
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+sqlalchemy>=2.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+psycopg2-binary>=2.9.0
+aiosqlite>=0.19.0
+skyfield>=1.48
+matplotlib>=3.8.0
+numpy>=1.26.0
+pandas>=2.0.0
+python-multipart>=0.0.6
+

@@ -1,0 +1,22 @@
+# Environment
+.env
+venv/
+__pycache__/
+*.pyc
+
+# Data files
+data/cache.db
+data/*.bsp
+data/*.dat
+
+# IDE
+.vscode/
+.idea/
+
+# Cursor
+.cursor/
+.cursorrules
+.cursorignore
+
+# Spec doc
+IMPLEMENTATION_SPEC.md
