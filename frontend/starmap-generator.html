@@ -18,8 +18,8 @@
 
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #0f0f14;
-            color: #e4e4e7;
+            background: #111214;
+            color: #111214;
             min-height: 100vh;
         }
 
@@ -70,6 +70,7 @@
         .form-panel {
             padding: 32px 24px;
             overflow-y: auto;
+            background: #0f1113;
         }
 
         h1 {
@@ -152,6 +153,89 @@
         .btn-generate:disabled {
             background: #3f3f46;
             cursor: not-allowed;
+        }
+
+        .btn-cart {
+            width: 100%;
+            padding: 12px;
+            background: #22c55e;
+            color: white;
+            margin-top: 12px;
+        }
+
+        .btn-cart:hover:not(:disabled) {
+            background: #16a34a;
+        }
+
+        .btn-cart:disabled {
+            background: #3f3f46;
+            cursor: not-allowed;
+        }
+
+        .btn-cart.added {
+            background: #27272a;
+            border: 1px solid #22c55e;
+            color: #22c55e;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #18181b;
+            border: 1px solid #3f3f46;
+            color: #fafafa;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-color: #22c55e;
+        }
+
+        .toast.success::before {
+            content: '✓';
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: #22c55e;
+            border-radius: 50%;
+            font-size: 12px;
+            color: white;
+        }
+
+        .toast.error {
+            border-color: #ef4444;
+        }
+
+        .toast.error::before {
+            content: '✕';
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: #ef4444;
+            border-radius: 50%;
+            font-size: 12px;
+            color: white;
         }
 
         .error-message {
@@ -321,20 +405,29 @@
                     Generate Star Map
                 </button>
 
+                <button type="button" class="btn btn-cart" id="addToCartBtn" disabled>
+                    Add to Cart
+                </button>
+
                 <div class="error-message" id="errorMessage"></div>
             </form>
         </div>
     </div>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
 
     <!-- Flatpickr JS -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     
     <script>
         const API_BASE_URL = 'http://localhost:8000'; // Change to your server URL
+        const SHOPIFY_VARIANT_ID = 52466655658168; // Star Map product variant ID
 
         // DOM Elements
         const form = document.getElementById('starmapForm');
         const submitBtn = document.getElementById('submitBtn');
+        const addToCartBtn = document.getElementById('addToCartBtn');
         const placeholder = document.getElementById('placeholder');
         const spinner = document.getElementById('spinner');
         const previewImage = document.getElementById('previewImage');
@@ -346,6 +439,52 @@
         const coordsDisplay = document.getElementById('coordsDisplay');
         const latDisplay = document.getElementById('latDisplay');
         const lngDisplay = document.getElementById('lngDisplay');
+        const toast = document.getElementById('toast');
+
+        // State tracking for Add to Cart lock
+        let currentGeneratedParams = null;  // Params of the currently displayed image
+        let lastAddedToCartParams = null;   // Params that were last successfully added to cart
+
+        // ========== TOAST NOTIFICATIONS ==========
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        // ========== CART BUTTON STATE ==========
+        function getParamsHash(params) {
+            // Create a simple hash of params to compare
+            return JSON.stringify(params);
+        }
+
+        function updateCartButtonState() {
+            if (!currentGeneratedParams) {
+                addToCartBtn.disabled = true;
+                addToCartBtn.textContent = 'Add to Cart';
+                addToCartBtn.classList.remove('added');
+                return;
+            }
+
+            const currentHash = getParamsHash(currentGeneratedParams);
+            const lastAddedHash = lastAddedToCartParams ? getParamsHash(lastAddedToCartParams) : null;
+
+            if (currentHash === lastAddedHash) {
+                // Same params as last added - show "Added" state
+                addToCartBtn.disabled = true;
+                addToCartBtn.textContent = '✓ Added to Cart';
+                addToCartBtn.classList.add('added');
+            } else {
+                // Different params or never added - enable button
+                addToCartBtn.disabled = false;
+                addToCartBtn.textContent = 'Add to Cart';
+                addToCartBtn.classList.remove('added');
+            }
+        }
 
         // ========== LOCATION AUTOCOMPLETE ==========
         let searchTimeout = null;
@@ -534,6 +673,15 @@
                     console.log('Cache ID:', cacheId);
                 }
 
+                // Store current params for cart button state tracking
+                currentGeneratedParams = {
+                    ...payload,
+                    location: searchInput.value
+                };
+                
+                // Update cart button state
+                updateCartButtonState();
+
             } catch (error) {
                 console.error('Generation failed:', error);
                 errorMessage.textContent = error.message;
@@ -543,6 +691,93 @@
                 spinner.style.display = 'none';
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Generate Star Map';
+            }
+        });
+
+        // ========== ADD TO CART ==========
+        addToCartBtn.addEventListener('click', async () => {
+            const cacheId = previewImage.dataset.cacheId;
+            const apiKey = document.getElementById('apiKey').value;
+
+            if (!cacheId) {
+                showToast('Please generate a star map first', 'error');
+                return;
+            }
+
+            // Disable button while processing
+            addToCartBtn.disabled = true;
+            addToCartBtn.textContent = 'Adding...';
+
+            try {
+                // Step 1: Save to permanent storage
+                const saveResponse = await fetch(`${API_BASE_URL}/api/v1/starmaps/${cacheId}/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        title: currentGeneratedParams.title
+                    })
+                });
+
+                if (!saveResponse.ok) {
+                    const errorData = await saveResponse.json().catch(() => ({}));
+                    throw new Error(errorData.detail || 'Failed to save star map');
+                }
+
+                const savedStarmap = await saveResponse.json();
+                console.log('Saved starmap:', savedStarmap);
+
+                // Step 2: Build the image URL for fulfillment
+                const imageUrl = `${API_BASE_URL}/api/v1/starmaps/${savedStarmap.id}`;
+
+                // Step 3: Format date for display
+                const dateObj = new Date(currentGeneratedParams.year, currentGeneratedParams.month - 1, currentGeneratedParams.day);
+                const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+
+                // Step 4: Add to Shopify cart with line item properties
+                const cartResponse = await fetch('/cart/add.js', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id: SHOPIFY_VARIANT_ID,
+                        quantity: 1,
+                        properties: {
+                            '_starmap_id': savedStarmap.id,
+                            '_image_url': imageUrl,
+                            'Title': currentGeneratedParams.title || 'The Night Sky',
+                            'Location': currentGeneratedParams.location,
+                            'Date': formattedDate,
+                            'Coordinates': `${currentGeneratedParams.latitude.toFixed(4)}°, ${currentGeneratedParams.longitude.toFixed(4)}°`
+                        }
+                    })
+                });
+
+                if (!cartResponse.ok) {
+                    // Handle Shopify cart errors
+                    const cartError = await cartResponse.json().catch(() => ({}));
+                    throw new Error(cartError.description || 'Failed to add to cart');
+                }
+
+                // Success!
+                lastAddedToCartParams = { ...currentGeneratedParams };
+                updateCartButtonState();
+                showToast('Star map added to cart!', 'success');
+
+            } catch (error) {
+                console.error('Add to cart failed:', error);
+                showToast(error.message || 'Failed to add to cart', 'error');
+                
+                // Re-enable button on error
+                addToCartBtn.disabled = false;
+                addToCartBtn.textContent = 'Add to Cart';
             }
         });
     </script>
