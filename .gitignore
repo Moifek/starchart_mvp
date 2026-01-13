@@ -20,3 +20,4 @@ data/*.dat
 
 # Spec doc
 IMPLEMENTATION_SPEC.md
+CONTEXT_HISTORY.md
