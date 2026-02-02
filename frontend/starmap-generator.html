@@ -3,13 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StarChart Generator</title>
+    <title>StarMap Generator</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     
     <!-- Flatpickr CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
     
     <style>
+        :root {
+            --bg-primary: #0a0a0b;
+            --bg-secondary: #111214;
+            --bg-card: #161619;
+            --bg-input: #1e1e22;
+            --border-color: #2a2a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent: #6366f1;
+            --accent-hover: #5558e3;
+            --success: #22c55e;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f5f5f7;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --bg-input: #f0f0f2;
+            --border-color: #e4e4e7;
+            --text-primary: #18181b;
+            --text-secondary: #52525b;
+            --text-muted: #71717a;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -17,37 +47,72 @@
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #111214;
-            color: #111214;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
         }
 
-        .container {
+        .widget-container {
             display: grid;
-            grid-template-columns: 1fr 420px;
-            min-height: 100vh;
+            grid-template-columns: 1fr 380px;
+            min-height: 500px;
+            max-width: 1000px;
+            margin: 0 auto;
+            border-radius: 16px;
+            overflow: hidden;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
         }
 
-        /* Left Panel - Image Preview */
+        /* ========== PREVIEW PANEL ========== */
         .preview-panel {
-            background: #18181b;
+            background: var(--bg-primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            border-right: 1px solid #27272a;
             position: relative;
+            min-height: 500px;
+        }
+
+        .preview-frame {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .preview-placeholder {
-            color: #52525b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            color: var(--text-muted);
+        }
+
+        .placeholder-icon {
+            width: 48px;
+            height: 48px;
+            opacity: 0.5;
+        }
+
+        .placeholder-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: var(--text-muted);
+        }
+
+        .placeholder-text {
             font-size: 14px;
-            text-align: center;
+            color: var(--text-muted);
         }
 
         .preview-image {
             max-width: 90%;
-            max-height: 90vh;
+            max-height: 70%;
             object-fit: contain;
             display: none;
         }
@@ -56,8 +121,8 @@
             display: none;
             width: 40px;
             height: 40px;
-            border: 3px solid #27272a;
-            border-top-color: #6366f1;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -66,99 +131,332 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Right Panel - Form */
-        .form-panel {
-            padding: 32px 24px;
-            overflow-y: auto;
-            background: #0f1113;
+        /* Preview Overlay */
+        .preview-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 24px 32px 32px;
+            text-align: center;
+            display: none;
         }
 
-        h1 {
-            font-size: 20px;
-            font-weight: 600;
+        .preview-overlay.visible {
+            display: block;
+        }
+
+        .overlay-line {
+            width: 60px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 0 auto 16px;
+        }
+
+        .overlay-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .overlay-location {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 4px;
+        }
+
+        .overlay-date {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+        }
+
+        .overlay-coords {
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 12px;
+        }
+
+        .overlay-line-bottom {
+            width: 60px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 0 auto;
+        }
+
+        /* ========== FORM PANEL ========== */
+        .form-panel {
+            padding: 28px 24px;
+            overflow-y: auto;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border-color);
+        }
+
+        .form-header {
             margin-bottom: 24px;
-            color: #fafafa;
+        }
+
+        .form-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .form-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
         }
 
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 18px;
         }
 
         label {
             display: block;
             font-size: 13px;
             font-weight: 500;
-            color: #a1a1aa;
-            margin-bottom: 6px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
         }
 
         input[type="text"],
-        input[type="number"],
-        select {
+        input[type="number"] {
             width: 100%;
-            padding: 10px 12px;
-            background: #27272a;
-            border: 1px solid #3f3f46;
-            border-radius: 6px;
-            color: #fafafa;
+            padding: 12px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
             font-size: 14px;
-            transition: border-color 0.2s;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-        input:focus,
-        select:focus {
+        input:focus {
             outline: none;
-            border-color: #6366f1;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
 
-        .row {
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Location Input with Search Icon */
+        .location-wrapper {
+            position: relative;
+        }
+
+        .location-input-wrapper {
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .location-input-wrapper input {
+            padding-right: 42px;
+        }
+
+        .location-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .location-suggestions.active {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 12px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.15s;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background: var(--bg-input);
+        }
+
+        .suggestion-item .main-text {
+            color: var(--text-primary);
+        }
+
+        .suggestion-item .sub-text {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .searching {
+            padding: 12px 14px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* Date & Time Row */
+        .section-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .datetime-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
         }
 
-        .section-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: #71717a;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin: 20px 0 12px 0;
-            padding-top: 16px;
-            border-top: 1px solid #27272a;
+        .datetime-row .form-group {
+            margin-bottom: 0;
         }
 
+        /* Theme Toggle */
+        .theme-section {
+            margin-bottom: 24px;
+        }
+
+        .theme-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .theme-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .theme-toggle {
+            display: flex;
+            gap: 8px;
+        }
+
+        .theme-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            background: var(--bg-input);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .theme-btn:hover {
+            border-color: var(--text-muted);
+        }
+
+        .theme-btn.active {
+            border-color: var(--accent);
+            background: var(--accent);
+        }
+
+        .theme-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .theme-btn.light-btn {
+            background: #f5f5f7;
+            border-color: #e4e4e7;
+        }
+
+        .theme-btn.light-btn svg {
+            color: #71717a;
+        }
+
+        .theme-btn.dark-btn {
+            background: #1e1e22;
+            border-color: #2a2a2e;
+        }
+
+        .theme-btn.dark-btn svg {
+            color: #a1a1aa;
+        }
+
+        .theme-btn.active {
+            border-color: var(--accent);
+        }
+
+        /* Buttons */
         .btn {
-            padding: 10px 16px;
+            padding: 12px 16px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 14px;
             font-weight: 500;
+            font-family: inherit;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
         }
 
         .btn-generate {
             width: 100%;
-            padding: 12px;
-            background: #6366f1;
+            padding: 14px;
+            background: var(--accent);
             color: white;
-            margin-top: 24px;
         }
 
-        .btn-generate:hover {
-            background: #4f46e5;
+        .btn-generate:hover:not(:disabled) {
+            background: var(--accent-hover);
         }
 
         .btn-generate:disabled {
-            background: #3f3f46;
+            background: var(--border-color);
             cursor: not-allowed;
+            color: var(--text-muted);
         }
 
         .btn-cart {
             width: 100%;
-            padding: 12px;
-            background: #22c55e;
+            padding: 14px;
+            background: var(--success);
             color: white;
             margin-top: 12px;
         }
@@ -168,25 +466,43 @@
         }
 
         .btn-cart:disabled {
-            background: #3f3f46;
+            background: var(--border-color);
             cursor: not-allowed;
+            color: var(--text-muted);
         }
 
         .btn-cart.added {
-            background: #27272a;
-            border: 1px solid #22c55e;
-            color: #22c55e;
+            background: transparent;
+            border: 1px solid var(--success);
+            color: var(--success);
         }
 
-        /* Toast notification */
+        /* Quality Note */
+        .quality-note {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .quality-note svg {
+            width: 14px;
+            height: 14px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        /* Toast Notification */
         .toast {
             position: fixed;
             bottom: 24px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: #18181b;
-            border: 1px solid #3f3f46;
-            color: #fafafa;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
             padding: 14px 24px;
             border-radius: 8px;
             font-size: 14px;
@@ -205,7 +521,7 @@
         }
 
         .toast.success {
-            border-color: #22c55e;
+            border-color: var(--success);
         }
 
         .toast.success::before {
@@ -215,7 +531,7 @@
             justify-content: center;
             width: 20px;
             height: 20px;
-            background: #22c55e;
+            background: var(--success);
             border-radius: 50%;
             font-size: 12px;
             color: white;
@@ -239,166 +555,150 @@
         }
 
         .error-message {
-            background: #7f1d1d;
-            border: 1px solid #991b1b;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
             color: #fca5a5;
             padding: 12px;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 13px;
             margin-top: 16px;
             display: none;
         }
 
-        .api-key-group {
-            margin-bottom: 20px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #27272a;
-        }
-
-        .api-key-group input {
-            font-family: 'Consolas', monospace;
-            font-size: 13px;
-        }
-
-        /* Location Autocomplete */
-        .location-wrapper {
-            position: relative;
-        }
-
-        .location-suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: #27272a;
-            border: 1px solid #3f3f46;
-            border-top: none;
-            border-radius: 0 0 6px 6px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 100;
-            display: none;
-        }
-
-        .location-suggestions.active {
-            display: block;
-        }
-
-        .suggestion-item {
-            padding: 10px 12px;
-            cursor: pointer;
-            font-size: 13px;
-            border-bottom: 1px solid #3f3f46;
-        }
-
-        .suggestion-item:last-child {
-            border-bottom: none;
-        }
-
-        .suggestion-item:hover {
-            background: #3f3f46;
-        }
-
-        .suggestion-item .main-text {
-            color: #fafafa;
-        }
-
-        .suggestion-item .sub-text {
-            color: #71717a;
-            font-size: 12px;
-            margin-top: 2px;
-        }
-
-        .searching {
-            padding: 10px 12px;
-            color: #71717a;
-            font-size: 13px;
-        }
-
-        /* Coordinates display */
-        .coords-display {
-            display: flex;
-            gap: 16px;
-            margin-top: 8px;
-            font-size: 12px;
-            color: #71717a;
-        }
-
-        .coords-display span {
-            color: #a1a1aa;
-        }
-
-        /* Datetime row */
-        .datetime-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+        /* Hidden API Key - stored in config */
+        .hidden {
+            display: none !important;
         }
 
         /* Flatpickr overrides */
         .flatpickr-input {
-            background: #27272a !important;
+            background: var(--bg-input) !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .widget-container {
+                grid-template-columns: 1fr;
+                max-width: 100%;
+                border-radius: 0;
+            }
+
+            .preview-panel {
+                min-height: 350px;
+            }
+
+            .form-panel {
+                border-left: none;
+                border-top: 1px solid var(--border-color);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="widget-container">
         <!-- Left Panel - Preview -->
         <div class="preview-panel">
-            <div class="preview-placeholder" id="placeholder">
-                Generated star map will appear here
+            <div class="preview-frame">
+                <!-- Placeholder (shown when no image) -->
+                <div class="preview-placeholder" id="placeholder">
+                    <div class="placeholder-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                    </div>
+                    <span class="placeholder-text">Generated star map will appear here</span>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div class="loading-spinner" id="spinner"></div>
+
+                <!-- Generated Image -->
+                <img class="preview-image" id="previewImage" alt="Generated Star Map">
+
+                <!-- Overlay with title/location/date -->
+                <div class="preview-overlay" id="previewOverlay">
+                    <div class="overlay-line"></div>
+                    <div class="overlay-title" id="overlayTitle">OUR WEDDING NIGHT</div>
+                    <div class="overlay-location" id="overlayLocation">NEW YORK, NY</div>
+                    <div class="overlay-date" id="overlayDate">JANUARY 5, 2026</div>
+                    <div class="overlay-coords" id="overlayCoords">40.50°N, 74.00°W</div>
+                    <div class="overlay-line-bottom"></div>
+                </div>
             </div>
-            <div class="loading-spinner" id="spinner"></div>
-            <img class="preview-image" id="previewImage" alt="Generated Star Map">
         </div>
 
         <!-- Right Panel - Form -->
         <div class="form-panel">
-            <h1>Generate Star Map</h1>
+            <div class="form-header">
+                <h1 class="form-title">Design your map</h1>
+                <p class="form-subtitle">Enter the details of your special moment to generate your unique star map.</p>
+            </div>
 
             <form id="starmapForm">
-                <div class="api-key-group">
-                    <label for="apiKey">API Key</label>
-                    <input type="text" id="apiKey" placeholder="Enter your API key" required>
-                </div>
+                <!-- Hidden API Key -->
+                <input type="hidden" id="apiKey" value="">
 
                 <div class="form-group">
                     <label for="title">Title (optional)</label>
                     <input type="text" id="title" placeholder="e.g., Our Wedding Night" maxlength="255">
                 </div>
 
-                <div class="section-title">Location</div>
-
                 <div class="form-group location-wrapper">
-                    <label for="locationSearch">Search Location</label>
-                    <input type="text" id="locationSearch" placeholder="Type a city or address..." autocomplete="off">
-                    <div class="location-suggestions" id="suggestions"></div>
-                    <div class="coords-display" id="coordsDisplay" style="display: none;">
-                        <div>Lat: <span id="latDisplay">—</span></div>
-                        <div>Lng: <span id="lngDisplay">—</span></div>
+                    <label for="locationSearch">Location</label>
+                    <div class="location-input-wrapper">
+                        <input type="text" id="locationSearch" placeholder="Search location..." autocomplete="off">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
                     </div>
+                    <div class="location-suggestions" id="suggestions"></div>
                 </div>
 
                 <!-- Hidden inputs for lat/lng -->
                 <input type="hidden" id="latitude" required>
                 <input type="hidden" id="longitude" required>
 
-                <div class="section-title">Date & Time</div>
-
-                <div class="datetime-row">
-                    <div class="form-group">
-                        <label for="datePicker">Date</label>
-                        <input type="text" id="datePicker" placeholder="Select date" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="timePicker">Time</label>
-                        <input type="text" id="timePicker" placeholder="Select time" required>
+                <div class="form-group">
+                    <div class="section-label">Date & Time</div>
+                    <div class="datetime-row">
+                        <div class="form-group">
+                            <input type="text" id="datePicker" placeholder="Select date" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="timePicker" placeholder="Select time" required>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="timezone">UTC Offset (hours)</label>
-                    <input type="number" id="timezone" min="-12" max="14" placeholder="-12 to 14" required>
+                <!-- Hidden timezone -->
+                <input type="hidden" id="timezone">
+
+                <!-- Theme Toggle -->
+                <div class="theme-section">
+                    <div class="theme-toggle-wrapper">
+                        <span class="theme-label">Theme</span>
+                        <div class="theme-toggle">
+                            <button type="button" class="theme-btn light-btn" data-theme="light" title="Light theme">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="4"></circle>
+                                    <path d="M12 2v2"></path>
+                                    <path d="M12 20v2"></path>
+                                    <path d="m4.93 4.93 1.41 1.41"></path>
+                                    <path d="m17.66 17.66 1.41 1.41"></path>
+                                    <path d="M2 12h2"></path>
+                                    <path d="M20 12h2"></path>
+                                    <path d="m6.34 17.66-1.41 1.41"></path>
+                                    <path d="m19.07 4.93-1.41 1.41"></path>
+                                </svg>
+                            </button>
+                            <button type="button" class="theme-btn dark-btn active" data-theme="dark" title="Dark theme">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-generate" id="submitBtn">
@@ -408,6 +708,14 @@
                 <button type="button" class="btn btn-cart" id="addToCartBtn" disabled>
                     Add to Cart
                 </button>
+
+                <div class="quality-note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span>Museum-quality archival paper</span>
+                </div>
 
                 <div class="error-message" id="errorMessage"></div>
             </form>
@@ -421,8 +729,13 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     
     <script>
+        // ========== CONFIGURATION ==========
         const API_BASE_URL = 'http://localhost:8000'; // Change to your server URL
         const SHOPIFY_VARIANT_ID = 52466655658168; // Star Map product variant ID
+        
+        // API Key - In production, this should be injected by Shopify Liquid or stored securely
+        // For now, check localStorage or use a default for testing
+        const API_KEY = localStorage.getItem('starchart_api_key') || '';
 
         // DOM Elements
         const form = document.getElementById('starmapForm');
@@ -431,19 +744,71 @@
         const placeholder = document.getElementById('placeholder');
         const spinner = document.getElementById('spinner');
         const previewImage = document.getElementById('previewImage');
+        const previewOverlay = document.getElementById('previewOverlay');
         const errorMessage = document.getElementById('errorMessage');
         const searchInput = document.getElementById('locationSearch');
         const suggestions = document.getElementById('suggestions');
         const latInput = document.getElementById('latitude');
         const lngInput = document.getElementById('longitude');
-        const coordsDisplay = document.getElementById('coordsDisplay');
-        const latDisplay = document.getElementById('latDisplay');
-        const lngDisplay = document.getElementById('lngDisplay');
         const toast = document.getElementById('toast');
+        const apiKeyInput = document.getElementById('apiKey');
 
-        // State tracking for Add to Cart lock
-        let currentGeneratedParams = null;  // Params of the currently displayed image
-        let lastAddedToCartParams = null;   // Params that were last successfully added to cart
+        // Overlay elements
+        const overlayTitle = document.getElementById('overlayTitle');
+        const overlayLocation = document.getElementById('overlayLocation');
+        const overlayDate = document.getElementById('overlayDate');
+        const overlayCoords = document.getElementById('overlayCoords');
+
+        // Set API key from config
+        apiKeyInput.value = API_KEY;
+
+        // State tracking
+        let currentGeneratedParams = null;
+        let lastAddedToCartParams = null;
+        let selectedLocationName = '';
+
+        // ========== THEME TOGGLE ==========
+        const themeBtns = document.querySelectorAll('.theme-btn');
+        
+        themeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const theme = btn.dataset.theme;
+                document.documentElement.setAttribute('data-theme', theme);
+                
+                // Update active state
+                themeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // ========== PREVIEW OVERLAY ==========
+        function updatePreviewOverlay() {
+            const title = document.getElementById('title').value || 'THE NIGHT SKY';
+            const dateVal = datePicker.selectedDates[0];
+            
+            overlayTitle.textContent = title.toUpperCase();
+            overlayLocation.textContent = selectedLocationName.toUpperCase() || 'SELECT LOCATION';
+            
+            if (dateVal) {
+                const formattedDate = dateVal.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                }).toUpperCase();
+                overlayDate.textContent = formattedDate;
+            }
+
+            if (latInput.value && lngInput.value) {
+                const lat = parseFloat(latInput.value);
+                const lng = parseFloat(lngInput.value);
+                const latDir = lat >= 0 ? 'N' : 'S';
+                const lngDir = lng >= 0 ? 'E' : 'W';
+                overlayCoords.textContent = `${Math.abs(lat).toFixed(2)}°${latDir}, ${Math.abs(lng).toFixed(2)}°${lngDir}`;
+            }
+        }
+
+        // Update overlay when form changes
+        document.getElementById('title').addEventListener('input', updatePreviewOverlay);
 
         // ========== TOAST NOTIFICATIONS ==========
         function showToast(message, type = 'success') {
@@ -458,7 +823,6 @@
 
         // ========== CART BUTTON STATE ==========
         function getParamsHash(params) {
-            // Create a simple hash of params to compare
             return JSON.stringify(params);
         }
 
@@ -474,12 +838,10 @@
             const lastAddedHash = lastAddedToCartParams ? getParamsHash(lastAddedToCartParams) : null;
 
             if (currentHash === lastAddedHash) {
-                // Same params as last added - show "Added" state
                 addToCartBtn.disabled = true;
                 addToCartBtn.textContent = '✓ Added to Cart';
                 addToCartBtn.classList.add('added');
             } else {
-                // Different params or never added - enable button
                 addToCartBtn.disabled = false;
                 addToCartBtn.textContent = 'Add to Cart';
                 addToCartBtn.classList.remove('added');
@@ -492,7 +854,6 @@
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value.trim();
             
-            // Clear previous timeout
             if (searchTimeout) clearTimeout(searchTimeout);
             
             if (query.length < 2) {
@@ -500,7 +861,6 @@
                 return;
             }
 
-            // Debounce: wait 300ms after user stops typing
             searchTimeout = setTimeout(() => searchLocation(query), 300);
         });
 
@@ -526,7 +886,6 @@
                     const item = document.createElement('div');
                     item.className = 'suggestion-item';
                     
-                    // Parse display name for cleaner presentation
                     const parts = result.display_name.split(', ');
                     const mainText = parts[0];
                     const subText = parts.slice(1, 3).join(', ');
@@ -549,23 +908,18 @@
             const lat = parseFloat(result.lat);
             const lng = parseFloat(result.lon);
             
-            // Update hidden inputs
             latInput.value = lat;
             lngInput.value = lng;
             
-            // Update display
             const parts = result.display_name.split(', ');
-            searchInput.value = parts.slice(0, 2).join(', ');
+            selectedLocationName = parts.slice(0, 2).join(', ');
+            searchInput.value = selectedLocationName;
             
-            latDisplay.textContent = lat.toFixed(4);
-            lngDisplay.textContent = lng.toFixed(4);
-            coordsDisplay.style.display = 'flex';
-            
-            // Hide suggestions
             suggestions.classList.remove('active');
+            
+            updatePreviewOverlay();
         }
 
-        // Hide suggestions when clicking outside
         document.addEventListener('click', (e) => {
             if (!suggestions.contains(e.target) && e.target !== searchInput) {
                 suggestions.classList.remove('active');
@@ -576,7 +930,8 @@
         const datePicker = flatpickr('#datePicker', {
             dateFormat: 'Y-m-d',
             theme: 'dark',
-            defaultDate: new Date()
+            defaultDate: new Date(),
+            onChange: updatePreviewOverlay
         });
 
         const timePicker = flatpickr('#timePicker', {
@@ -592,13 +947,23 @@
         const browserOffset = -new Date().getTimezoneOffset() / 60;
         document.getElementById('timezone').value = browserOffset;
 
+        // Initialize overlay
+        updatePreviewOverlay();
+
         // ========== FORM SUBMISSION ==========
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Validate location
             if (!latInput.value || !lngInput.value) {
                 errorMessage.textContent = 'Please select a location from the suggestions';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            // Get API key
+            const apiKey = apiKeyInput.value;
+            if (!apiKey) {
+                errorMessage.textContent = 'API key not configured. Please contact support.';
                 errorMessage.style.display = 'block';
                 return;
             }
@@ -607,11 +972,11 @@
             errorMessage.style.display = 'none';
             placeholder.style.display = 'none';
             previewImage.style.display = 'none';
+            previewOverlay.classList.remove('visible');
             spinner.style.display = 'block';
             submitBtn.disabled = true;
             submitBtn.textContent = 'Generating...';
 
-            // Parse date and time from pickers
             const dateVal = datePicker.selectedDates[0];
             const timeVal = timePicker.selectedDates[0];
 
@@ -619,7 +984,7 @@
                 errorMessage.textContent = 'Please select date and time';
                 errorMessage.style.display = 'block';
                 spinner.style.display = 'none';
-                placeholder.style.display = 'block';
+                placeholder.style.display = 'flex';
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Generate Star Map';
                 return;
@@ -637,8 +1002,6 @@
                 title: document.getElementById('title').value || null
             };
 
-            const apiKey = document.getElementById('apiKey').value;
-
             try {
                 const response = await fetch(`${API_BASE_URL}/api/v1/starmaps/generate`, {
                     method: 'POST',
@@ -654,39 +1017,35 @@
                     throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
                 }
 
-                // Response is binary PNG - use blob
                 const blob = await response.blob();
                 const imageUrl = URL.createObjectURL(blob);
 
-                // Revoke previous URL if exists
                 if (previewImage.src.startsWith('blob:')) {
                     URL.revokeObjectURL(previewImage.src);
                 }
 
                 previewImage.src = imageUrl;
                 previewImage.style.display = 'block';
+                previewOverlay.classList.add('visible');
 
-                // Store cache ID for potential save operation
                 const cacheId = response.headers.get('X-Cache-Id');
                 if (cacheId) {
                     previewImage.dataset.cacheId = cacheId;
                     console.log('Cache ID:', cacheId);
                 }
 
-                // Store current params for cart button state tracking
                 currentGeneratedParams = {
                     ...payload,
-                    location: searchInput.value
+                    location: selectedLocationName
                 };
                 
-                // Update cart button state
                 updateCartButtonState();
 
             } catch (error) {
                 console.error('Generation failed:', error);
                 errorMessage.textContent = error.message;
                 errorMessage.style.display = 'block';
-                placeholder.style.display = 'block';
+                placeholder.style.display = 'flex';
             } finally {
                 spinner.style.display = 'none';
                 submitBtn.disabled = false;
@@ -697,14 +1056,13 @@
         // ========== ADD TO CART ==========
         addToCartBtn.addEventListener('click', async () => {
             const cacheId = previewImage.dataset.cacheId;
-            const apiKey = document.getElementById('apiKey').value;
+            const apiKey = apiKeyInput.value;
 
             if (!cacheId) {
                 showToast('Please generate a star map first', 'error');
                 return;
             }
 
-            // Disable button while processing
             addToCartBtn.disabled = true;
             addToCartBtn.textContent = 'Adding...';
 
@@ -729,10 +1087,8 @@
                 const savedStarmap = await saveResponse.json();
                 console.log('Saved starmap:', savedStarmap);
 
-                // Step 2: Build the image URL for fulfillment
                 const imageUrl = `${API_BASE_URL}/api/v1/starmaps/${savedStarmap.id}`;
 
-                // Step 3: Format date for display
                 const dateObj = new Date(currentGeneratedParams.year, currentGeneratedParams.month - 1, currentGeneratedParams.day);
                 const formattedDate = dateObj.toLocaleDateString('en-US', { 
                     year: 'numeric', 
@@ -740,7 +1096,7 @@
                     day: 'numeric' 
                 });
 
-                // Step 4: Add to Shopify cart with line item properties
+                // Step 2: Add to Shopify cart
                 const cartResponse = await fetch('/cart/add.js', {
                     method: 'POST',
                     headers: {
@@ -761,12 +1117,10 @@
                 });
 
                 if (!cartResponse.ok) {
-                    // Handle Shopify cart errors
                     const cartError = await cartResponse.json().catch(() => ({}));
                     throw new Error(cartError.description || 'Failed to add to cart');
                 }
 
-                // Success!
                 lastAddedToCartParams = { ...currentGeneratedParams };
                 updateCartButtonState();
                 showToast('Star map added to cart!', 'success');
@@ -775,7 +1129,6 @@
                 console.error('Add to cart failed:', error);
                 showToast(error.message || 'Failed to add to cart', 'error');
                 
-                // Re-enable button on error
                 addToCartBtn.disabled = false;
                 addToCartBtn.textContent = 'Add to Cart';
             }
