@@ -1,0 +1,20 @@
+[
+  {
+    "name": "StarChart",
+    "settings": [
+      {
+        "type": "text",
+        "id": "starchart_api_url",
+        "label": "API URL",
+        "info": "Full URL to your StarChart API server, no trailing slash",
+        "placeholder": "https://your-api-server.com"
+      },
+      {
+        "type": "text",
+        "id": "starchart_api_key",
+        "label": "API Key",
+        "info": "API key for the StarChart generation service"
+      }
+    ]
+  }
+]

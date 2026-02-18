@@ -1,0 +1,22 @@
+{
+  "sections": {
+    "starmap_generator": {
+      "name": "Star Map Generator",
+      "presets": {
+        "name": "Star Map Generator"
+      },
+      "settings": {
+        "product": {
+          "label": "Product"
+        },
+        "content_header": "Content",
+        "heading": {
+          "label": "Heading"
+        },
+        "description": {
+          "label": "Description"
+        }
+      }
+    }
+  }
+}

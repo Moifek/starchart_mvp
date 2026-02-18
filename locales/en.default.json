@@ -1,0 +1,25 @@
+{
+  "sections": {
+    "starmap_generator": {
+      "placeholder": "Generated star map will appear here",
+      "generating": "Generating star map…",
+      "image_alt": "Generated star map",
+      "fields": {
+        "title": "Title (optional)",
+        "title_placeholder": "e.g., Our Wedding Night",
+        "location": "Location",
+        "location_placeholder": "Search location…",
+        "location_suggestions": "Location suggestions",
+        "clear_location": "Clear location",
+        "datetime": "Date & Time",
+        "date": "Date",
+        "time": "Time"
+      },
+      "buttons": {
+        "generate": "Generate Star Map",
+        "add_to_cart": "Add to Cart"
+      },
+      "quality_note": "Museum-quality archival paper"
+    }
+  }
+}

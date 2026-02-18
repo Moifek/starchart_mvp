@@ -1,0 +1,1513 @@
+{% comment %}
+  StarMap Generator Section
+  Renders an interactive star map customizer with live preview and Shopify cart integration.
+  Requires theme setting: settings.starchart_api_key, settings.starchart_api_url
+{% endcomment %}
+
+{%- liquid
+  assign product = section.settings.product
+  assign variant_id = product.variants.first.id | default: ''
+  assign api_url = settings.starchart_api_url | default: ''
+  assign api_key = settings.starchart_api_key | default: ''
+  assign heading = section.settings.heading | default: 'Design your map'
+  assign description = section.settings.description | default: 'Enter the details of your special moment to generate your unique star map.'
+-%}
+
+<div
+  class="starmap"
+  id="StarmapGenerator-{{ section.id }}"
+  data-section-id="{{ section.id }}"
+  data-api-url="{{ api_url }}"
+  data-api-key="{{ api_key }}"
+  data-variant-id="{{ variant_id }}"
+>
+  {% comment %} Preview panel {% endcomment %}
+  <div class="starmap__preview">
+    <div class="starmap__preview-frame">
+      {% comment %} Placeholder state {% endcomment %}
+      <div class="starmap__placeholder" data-starmap-placeholder>
+        <svg class="starmap__placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <!--span class="starmap__placeholder-text">{{ 'sections.starmap_generator.placeholder' | t }}</span-->
+        <span class="starmap__placeholder-text">Generated star map will appear here</span>
+      </div>
+
+      {% comment %} Loading spinner {% endcomment %}
+      <!--div class="starmap__spinner" data-starmap-spinner aria-label="{{ 'sections.starmap_generator.generating' | t }}" role="status">
+        <span class="visually-hidden">{{ 'sections.starmap_generator.generating' | t }}</span>
+      </div-->
+      <div class="starmap__spinner" data-starmap-spinner aria-label="Generating star map…" role="status">
+        <span class="visually-hidden">Generating star map…</span>
+      </div>
+
+
+      {% comment %} Generated image {% endcomment %}
+      <!--img class="starmap__image" data-starmap-image alt="{{ 'sections.starmap_generator.image_alt' | t }}"-->
+      <img class="starmap__image" width="800" height="800" data-starmap-image alt="Generated star map">
+
+      {% comment %} Overlay with title/location/date {% endcomment %}
+      <div class="starmap__overlay" data-starmap-overlay aria-hidden="true">
+        <div class="starmap__overlay-rule"></div>
+        <div class="starmap__overlay-title" data-starmap-overlay-title></div>
+        <div class="starmap__overlay-location" data-starmap-overlay-location></div>
+        <div class="starmap__overlay-date" data-starmap-overlay-date></div>
+        <div class="starmap__overlay-coords" data-starmap-overlay-coords></div>
+        <div class="starmap__overlay-rule"></div>
+      </div>
+    </div>
+  </div>
+
+  {% comment %} Form panel {% endcomment %}
+  <div class="starmap__form-panel">
+    <div class="starmap__header">
+      <h2 class="starmap__title">{{ heading }}</h2>
+      <p class="starmap__description">{{ description }}</p>
+    </div>
+
+    <form class="starmap__form" data-starmap-form>
+      {% comment %} Title field {% endcomment %}
+      <div class="starmap__field">
+        <!--label class="starmap__label" for="StarmapTitle-{{ section.id }}">
+          {{ 'sections.starmap_generator.fields.title' | t }}
+        </label-->
+        <label class="starmap__label" for="StarmapTitle-{{ section.id }}">
+          Title (optional)
+        </label>
+        <!--input
+          class="starmap__input"
+          type="text"
+          id="StarmapTitle-{{ section.id }}"
+          data-starmap-title
+          placeholder="{{ 'sections.starmap_generator.fields.title_placeholder' | t }}"
+          maxlength="255"
+        -->
+        <input
+          class="starmap__input"
+          type="text"
+          id="StarmapTitle-{{ section.id }}"
+          data-starmap-title
+          placeholder="e.g., Our Wedding Night"
+          maxlength="255"
+        >
+      </div>
+
+      {% comment %} Location field {% endcomment %}
+      <div class="starmap__field starmap__field--location">
+        <!--label class="starmap__label" for="StarmapLocation-{{ section.id }}">
+          {{ 'sections.starmap_generator.fields.location' | t }}
+        </label-->
+        <label class="starmap__label" for="StarmapLocation-{{ section.id }}">
+          Locales
+        </label>
+        <div class="starmap__location-wrap">
+          <!--input
+            class="starmap__input starmap__input--search"
+            type="text"
+            id="StarmapLocation-{{ section.id }}"
+            data-starmap-location-input
+            placeholder="{{ 'sections.starmap_generator.fields.location_placeholder' | t }}"
+            autocomplete="off"
+            role="combobox"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            aria-controls="StarmapSuggestions-{{ section.id }}"
+          -->
+          <input
+            class="starmap__input starmap__input--search"
+            type="text"
+            id="StarmapLocation-{{ section.id }}"
+            data-starmap-location-input
+            placeholder="Search location…"
+            autocomplete="off"
+            role="combobox"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            aria-controls="StarmapSuggestions-{{ section.id }}"
+          >
+          <svg class="starmap__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+        </div>
+        <!--ul
+          class="starmap__suggestions"
+          id="StarmapSuggestions-{{ section.id }}"
+          data-starmap-suggestions
+          role="listbox"
+          aria-label="{{ 'sections.starmap_generator.fields.location_suggestions' | t }}"
+        ></ul-->
+         <ul
+          class="starmap__suggestions"
+          id="StarmapSuggestions-{{ section.id }}"
+          data-starmap-suggestions
+          role="listbox"
+          aria-label="Location suggestions"
+        ></ul>
+        {% comment %} Location chip shown when a location is selected {% endcomment %}
+        <div class="starmap__location-chip" data-starmap-location-chip>
+          <span class="starmap__location-chip-text" data-starmap-location-chip-text></span>
+          <!--button
+            type="button"
+            class="starmap__location-chip-clear"
+            data-starmap-location-clear
+            aria-label="{{ 'sections.starmap_generator.fields.clear_location' | t }}"
+          -->
+          <button
+            type="button"
+            class="starmap__location-chip-clear"
+            data-starmap-location-clear
+            aria-label="Clear location"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18"></path>
+              <path d="m6 6 12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {% comment %} Hidden lat/lng/timezone {% endcomment %}
+      <input type="hidden" data-starmap-lat>
+      <input type="hidden" data-starmap-lng>
+      <input type="hidden" data-starmap-tz>
+
+      {% comment %} Date and time {% endcomment %}
+      <div class="starmap__field">
+        <!--span class="starmap__label">{{ 'sections.starmap_generator.fields.datetime' | t }}</span-->
+        <span class="starmap__label">Date & Time</span>
+        <div class="starmap__datetime-row">
+          <div class="starmap__datetime-field">
+            <!--input
+              class="starmap__input"
+              type="date"
+              id="StarmapDate-{{ section.id }}"
+              data-starmap-date
+              required
+              aria-label="{{ 'sections.starmap_generator.fields.date' | t }}"
+            -->
+            <input
+              class="starmap__input"
+              type="date"
+              id="StarmapDate-{{ section.id }}"
+              data-starmap-date
+              required
+              aria-label="Date"
+            >
+          </div>
+          <div class="starmap__datetime-field">
+            <!--input
+              class="starmap__input"
+              type="time"
+              id="StarmapTime-{{ section.id }}"
+              data-starmap-time
+              required
+              aria-label="{{ 'sections.starmap_generator.fields.time' | t }}"
+            -->
+            <input
+              class="starmap__input"
+              type="time"
+              id="StarmapTime-{{ section.id }}"
+              data-starmap-time
+              required
+              aria-label="Time"
+            >
+          </div>
+        </div>
+      </div>
+
+      {% comment %} Action buttons {% endcomment %}
+      <!--button type="submit" class="starmap__btn starmap__btn--generate" data-starmap-generate>
+        {{ 'sections.starmap_generator.buttons.generate' | t }}
+      </button-->
+      <button type="submit" class="starmap__btn starmap__btn--generate" data-starmap-generate>
+        Generate Star Map
+      </button>
+
+      <!--button type="button" class="starmap__btn starmap__btn--cart" data-starmap-cart disabled>
+        {{ 'sections.starmap_generator.buttons.add_to_cart' | t }}
+      </button-->
+      <button type="button" class="starmap__btn starmap__btn--cart" data-starmap-cart disabled>
+        Add to Cart
+      </button>
+
+      {% comment %} Quality note {% endcomment %}
+      <div class="starmap__quality-note">
+        <svg class="starmap__quality-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <!--span>{{ 'sections.starmap_generator.quality_note' | t }}</span-->
+        <span>Museum-quality archival paper</span>
+      </div>
+
+      {% comment %} Error display {% endcomment %}
+      <div class="starmap__error" data-starmap-error role="alert" aria-live="polite"></div>
+    </form>
+  </div>
+
+  {% comment %} Toast notification {% endcomment %}
+  <div class="starmap__toast" data-starmap-toast role="status" aria-live="polite">
+    <span class="starmap__toast-icon" data-starmap-toast-icon aria-hidden="true"></span>
+    <span class="starmap__toast-message" data-starmap-toast-message></span>
+  </div>
+</div>
+
+{% stylesheet %}
+  /* ============================================================
+     StarMap Generator — BEM, mobile-first, dark-only
+     ============================================================ */
+
+  .starmap {
+    --starmap-bg: #0a0a0b;
+    --starmap-bg-secondary: #111214;
+    --starmap-bg-card: #161619;
+    --starmap-bg-input: #1e1e22;
+    --starmap-border: #2a2a2e;
+    --starmap-text: #ffffff;
+    --starmap-text-secondary: #a1a1aa;
+    --starmap-text-muted: #71717a;
+    --starmap-accent: #6366f1;
+    --starmap-accent-hover: #5558e3;
+    --starmap-accent-subtle: rgba(99, 102, 241, 0.1);
+    --starmap-success: #22c55e;
+    --starmap-success-hover: #16a34a;
+    --starmap-error: #ef4444;
+    --starmap-error-subtle: rgba(239, 68, 68, 0.1);
+    --starmap-error-border: rgba(239, 68, 68, 0.3);
+    --starmap-error-text: #fca5a5;
+    --starmap-overlay-text: rgba(255, 255, 255, 0.7);
+    --starmap-overlay-text-dim: rgba(255, 255, 255, 0.5);
+    --starmap-overlay-text-faint: rgba(255, 255, 255, 0.4);
+    --starmap-overlay-rule: rgba(255, 255, 255, 0.3);
+    --starmap-radius: 8px;
+    --starmap-radius-lg: 16px;
+    --starmap-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --starmap-font: inherit;
+    --starmap-font-serif: 'Cormorant Garamond', Georgia, serif;
+
+    display: grid;
+    grid-template-columns: 1fr;
+    max-width: 1000px;
+    margin: 0 auto;
+    border-radius: var(--starmap-radius-lg);
+    overflow: hidden;
+    background: var(--starmap-bg-secondary);
+    border: 1px solid var(--starmap-border);
+    font-family: var(--starmap-font);
+    color: var(--starmap-text);
+    position: relative;
+  }
+
+  @media screen and (min-width: 768px) {
+    .starmap {
+      grid-template-columns: 1fr 380px;
+    }
+  }
+
+  /* ========== Preview panel ========== */
+
+  .starmap__preview {
+    background: var(--starmap-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 350px;
+  }
+
+  @media screen and (min-width: 768px) {
+    .starmap__preview {
+      min-height: 500px;
+    }
+  }
+
+  .starmap__preview-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Placeholder */
+
+  .starmap__placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: var(--starmap-text-muted);
+  }
+
+  .starmap__placeholder--hidden {
+    display: none;
+  }
+
+  .starmap__placeholder-icon {
+    width: 48px;
+    height: 48px;
+    opacity: 0.5;
+    stroke: var(--starmap-text-muted);
+  }
+
+  .starmap__placeholder-text {
+    font-size: 14px;
+    color: var(--starmap-text-muted);
+  }
+
+  /* Spinner */
+
+  .starmap__spinner {
+    display: none;
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--starmap-border);
+    border-top-color: var(--starmap-accent);
+    border-radius: 50%;
+    animation: starmap-spin 1s linear infinite;
+  }
+
+  .starmap__spinner--active {
+    display: block;
+  }
+
+  @keyframes starmap-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Preview image */
+
+  .starmap__image {
+    max-width: 90%;
+    max-height: 70%;
+    object-fit: contain;
+    display: none;
+  }
+
+  .starmap__image--visible {
+    display: block;
+  }
+
+  /* Overlay */
+
+  .starmap__overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 24px 32px 32px;
+    text-align: center;
+    display: none;
+  }
+
+  .starmap__overlay--visible {
+    display: block;
+  }
+
+  .starmap__overlay-rule {
+    width: 60px;
+    height: 1px;
+    background: var(--starmap-overlay-rule);
+    margin: 0 auto 16px;
+  }
+
+  .starmap__overlay-rule:last-child {
+    margin: 12px auto 0;
+  }
+
+  .starmap__overlay-title {
+    font-family: var(--starmap-font-serif);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--starmap-text);
+    margin-bottom: 8px;
+  }
+
+  .starmap__overlay-location {
+    font-family: var(--starmap-font-serif);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--starmap-overlay-text);
+    margin-bottom: 4px;
+  }
+
+  .starmap__overlay-date {
+    font-family: var(--starmap-font-serif);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--starmap-overlay-text-dim);
+    margin-bottom: 8px;
+  }
+
+  .starmap__overlay-coords {
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: var(--starmap-overlay-text-faint);
+  }
+
+  /* ========== Form panel ========== */
+
+  .starmap__form-panel {
+    padding: 28px 24px;
+    overflow-y: auto;
+    background: var(--starmap-bg-card);
+    border-top: 1px solid var(--starmap-border);
+  }
+
+  @media screen and (min-width: 768px) {
+    .starmap__form-panel {
+      border-top: none;
+      border-left: 1px solid var(--starmap-border);
+    }
+  }
+
+  .starmap__header {
+    margin-bottom: 24px;
+  }
+
+  .starmap__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--starmap-text);
+    margin-bottom: 6px;
+  }
+
+  .starmap__description {
+    font-size: 13px;
+    color: var(--starmap-text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Fields */
+
+  .starmap__field {
+    margin-bottom: 18px;
+  }
+
+  .starmap__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--starmap-text-secondary);
+    margin-bottom: 8px;
+  }
+
+  .starmap__input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--starmap-bg-input);
+    border: 1px solid var(--starmap-border);
+    border-radius: var(--starmap-radius);
+    color: var(--starmap-text);
+    font-size: 14px;
+    font-family: var(--starmap-font);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    color-scheme: dark;
+  }
+
+  .starmap__input:focus {
+    outline: none;
+    border-color: var(--starmap-accent);
+    box-shadow: 0 0 0 3px var(--starmap-accent-subtle);
+  }
+
+  .starmap__input::placeholder {
+    color: var(--starmap-text-muted);
+  }
+
+  /* Location field */
+
+  .starmap__field--location {
+    position: relative;
+  }
+
+  .starmap__location-wrap {
+    position: relative;
+  }
+
+  .starmap__input--search {
+    padding-right: 42px;
+  }
+
+  .starmap__search-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: var(--starmap-text-muted);
+    pointer-events: none;
+  }
+
+  /* Location chip */
+
+  .starmap__location-chip {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: var(--starmap-accent-subtle);
+    border: 1px solid var(--starmap-accent);
+    border-radius: 20px;
+    font-size: 13px;
+    color: var(--starmap-accent);
+  }
+
+  .starmap__location-chip--visible {
+    display: inline-flex;
+  }
+
+  .starmap__location-chip-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--starmap-accent);
+    flex-shrink: 0;
+  }
+
+  .starmap__location-chip-clear:hover {
+    color: var(--starmap-text);
+  }
+
+  .starmap__location-chip-clear svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Suggestions dropdown */
+
+  .starmap__suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--starmap-bg-card);
+    border: 1px solid var(--starmap-border);
+    border-top: none;
+    border-radius: 0 0 var(--starmap-radius) var(--starmap-radius);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .starmap__suggestions--open {
+    display: block;
+  }
+
+  .starmap__suggestion {
+    padding: 12px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    border-bottom: 1px solid var(--starmap-border);
+    transition: background 0.15s;
+  }
+
+  .starmap__suggestion:last-child {
+    border-bottom: none;
+  }
+
+  .starmap__suggestion:hover,
+  .starmap__suggestion--focused {
+    background: var(--starmap-bg-input);
+  }
+
+  .starmap__suggestion-main {
+    color: var(--starmap-text);
+  }
+
+  .starmap__suggestion-sub {
+    color: var(--starmap-text-muted);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  .starmap__suggestion-status {
+    padding: 12px 14px;
+    color: var(--starmap-text-muted);
+    font-size: 13px;
+  }
+
+  /* Date & time row */
+
+  .starmap__datetime-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* Buttons */
+
+  .starmap__btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: var(--starmap-radius);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--starmap-font);
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s, border-color 0.2s, color 0.2s;
+  }
+
+  .starmap__btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .starmap__btn:disabled {
+    cursor: not-allowed;
+  }
+
+  .starmap__btn--generate {
+    background: var(--starmap-accent);
+    color: var(--starmap-text);
+  }
+
+  .starmap__btn--generate:hover:not(:disabled) {
+    background: var(--starmap-accent-hover);
+  }
+
+  .starmap__btn--generate:disabled {
+    background: var(--starmap-border);
+    color: var(--starmap-text-muted);
+  }
+
+  .starmap__btn--cart {
+    margin-top: 12px;
+    background: transparent;
+    border: 1px solid var(--starmap-accent);
+    color: var(--starmap-accent);
+  }
+
+  .starmap__btn--cart:hover:not(:disabled) {
+    background: var(--starmap-accent);
+    color: var(--starmap-text);
+  }
+
+  .starmap__btn--cart:disabled {
+    border-color: var(--starmap-border);
+    color: var(--starmap-text-muted);
+    background: transparent;
+  }
+
+  .starmap__btn--cart-added {
+    border-color: var(--starmap-success);
+    color: var(--starmap-success);
+    background: transparent;
+  }
+
+  .starmap__btn--cart-added:hover {
+    background: transparent;
+    color: var(--starmap-success);
+  }
+
+  /* Quality note */
+
+  .starmap__quality-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--starmap-text-muted);
+  }
+
+  .starmap__quality-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--starmap-text-muted);
+    flex-shrink: 0;
+  }
+
+  /* Error message */
+
+  .starmap__error {
+    background: var(--starmap-error-subtle);
+    border: 1px solid var(--starmap-error-border);
+    color: var(--starmap-error-text);
+    padding: 12px;
+    border-radius: var(--starmap-radius);
+    font-size: 13px;
+    margin-top: 16px;
+    display: none;
+  }
+
+  .starmap__error--visible {
+    display: block;
+  }
+
+  /* Toast */
+
+  .starmap__toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--starmap-bg-card);
+    border: 1px solid var(--starmap-border);
+    color: var(--starmap-text);
+    padding: 14px 24px;
+    border-radius: var(--starmap-radius);
+    font-size: 14px;
+    z-index: 1000;
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: var(--starmap-shadow);
+    pointer-events: none;
+  }
+
+  .starmap__toast--visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .starmap__toast--success {
+    border-color: var(--starmap-success);
+  }
+
+  .starmap__toast--error {
+    border-color: var(--starmap-error);
+  }
+
+  .starmap__toast-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 12px;
+    color: var(--starmap-text);
+    flex-shrink: 0;
+  }
+
+  .starmap__toast--success .starmap__toast-icon {
+    background: var(--starmap-success);
+  }
+
+  .starmap__toast--error .starmap__toast-icon {
+    background: var(--starmap-error);
+  }
+
+  /* Visually hidden (screen reader only) */
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+{% endstylesheet %}
+
+{% javascript %}
+  const FETCH_TIMEOUT_MS = 15000;
+  const SEARCH_DEBOUNCE_MS = 300;
+  const TOAST_DURATION_MS = 3500;
+  const MIN_SEARCH_LENGTH = 2;
+
+  const ERROR_MESSAGES = Object.freeze({
+    network: 'Connection failed. Please check your internet and try again.',
+    timeout: 'Request timed out. Please try again.',
+    generation: 'Could not generate your star map. Please try again.',
+    cart: 'Could not add to cart. Please try again.',
+    location: 'Please select a location from the suggestions.',
+    datetime: 'Please select a date and time.',
+    api_key: 'Configuration error. Please contact support.',
+    default: 'Something went wrong. Please try again.'
+  });
+
+  class StarMapWidget {
+    /** @type {HTMLElement} */
+    #root;
+    #config;
+    #state;
+    #elements;
+    #abortController;
+    #searchTimeout;
+    #toastTimeout;
+    #focusedSuggestionIndex;
+    #suggestionResults;
+    #boundHandlers;
+
+    constructor(rootElement) {
+      this.#root = rootElement;
+      this.#config = Object.freeze({
+        apiUrl: rootElement.dataset.apiUrl,
+        apiKey: rootElement.dataset.apiKey,
+        variantId: rootElement.dataset.variantId,
+        sectionId: rootElement.dataset.sectionId
+      });
+
+      this.#state = {
+        currentParams: null,
+        lastCartParams: null,
+        locationName: '',
+        latitude: null,
+        longitude: null
+      };
+
+      this.#abortController = null;
+      this.#searchTimeout = null;
+      this.#toastTimeout = null;
+      this.#focusedSuggestionIndex = -1;
+      this.#suggestionResults = [];
+
+      this.#elements = this.#queryElements();
+      this.#boundHandlers = this.#createBoundHandlers();
+      this.#init();
+    }
+
+    #queryElements() {
+      const q = (selector) => this.#root.querySelector(`[data-starmap-${selector}]`);
+      return {
+        form: q('form'),
+        placeholder: q('placeholder'),
+        spinner: q('spinner'),
+        image: q('image'),
+        overlay: q('overlay'),
+        overlayTitle: q('overlay-title'),
+        overlayLocation: q('overlay-location'),
+        overlayDate: q('overlay-date'),
+        overlayCoords: q('overlay-coords'),
+        titleInput: q('title'),
+        locationInput: q('location-input'),
+        suggestions: q('suggestions'),
+        locationChip: q('location-chip'),
+        locationChipText: q('location-chip-text'),
+        locationClear: q('location-clear'),
+        latInput: q('lat'),
+        lngInput: q('lng'),
+        tzInput: q('tz'),
+        dateInput: q('date'),
+        timeInput: q('time'),
+        generateBtn: q('generate'),
+        cartBtn: q('cart'),
+        error: q('error'),
+        toast: q('toast'),
+        toastIcon: q('toast-icon'),
+        toastMessage: q('toast-message')
+      };
+    }
+
+    #createBoundHandlers() {
+      return {
+        onSubmit: (e) => this.#handleSubmit(e),
+        onCart: () => this.#handleAddToCart(),
+        onLocationInput: (e) => this.#handleLocationInput(e),
+        onLocationKeydown: (e) => this.#handleLocationKeydown(e),
+        onTitleInput: () => this.#updateOverlay(),
+        onDateChange: () => this.#updateOverlay(),
+        onClearLocation: () => this.#clearLocation(),
+        onClickOutside: (e) => this.#handleClickOutside(e)
+      };
+    }
+
+    #init() {
+      const now = new Date();
+      this.#elements.dateInput.value = this.#formatDateValue(now);
+      this.#elements.timeInput.value = this.#formatTimeValue(now);
+      this.#elements.tzInput.value = -now.getTimezoneOffset() / 60;
+
+      this.#elements.form.addEventListener('submit', this.#boundHandlers.onSubmit);
+      this.#elements.cartBtn.addEventListener('click', this.#boundHandlers.onCart);
+      this.#elements.locationInput.addEventListener('input', this.#boundHandlers.onLocationInput);
+      this.#elements.locationInput.addEventListener('keydown', this.#boundHandlers.onLocationKeydown);
+      this.#elements.titleInput.addEventListener('input', this.#boundHandlers.onTitleInput);
+      this.#elements.dateInput.addEventListener('change', this.#boundHandlers.onDateChange);
+      this.#elements.locationClear.addEventListener('click', this.#boundHandlers.onClearLocation);
+      document.addEventListener('click', this.#boundHandlers.onClickOutside);
+
+      this.#updateOverlay();
+    }
+
+    destroy() {
+      if (this.#abortController) {
+        this.#abortController.abort();
+      }
+
+      if (this.#searchTimeout) {
+        clearTimeout(this.#searchTimeout);
+      }
+
+      if (this.#toastTimeout) {
+        clearTimeout(this.#toastTimeout);
+      }
+
+      this.#elements.form.removeEventListener('submit', this.#boundHandlers.onSubmit);
+      this.#elements.cartBtn.removeEventListener('click', this.#boundHandlers.onCart);
+      this.#elements.locationInput.removeEventListener('input', this.#boundHandlers.onLocationInput);
+      this.#elements.locationInput.removeEventListener('keydown', this.#boundHandlers.onLocationKeydown);
+      this.#elements.titleInput.removeEventListener('input', this.#boundHandlers.onTitleInput);
+      this.#elements.dateInput.removeEventListener('change', this.#boundHandlers.onDateChange);
+      this.#elements.locationClear.removeEventListener('click', this.#boundHandlers.onClearLocation);
+      document.removeEventListener('click', this.#boundHandlers.onClickOutside);
+
+      const img = this.#elements.image;
+      if (img.src && img.src.startsWith('blob:')) {
+        URL.revokeObjectURL(img.src);
+      }
+    }
+
+    /* ===== Fetch helper ===== */
+
+    async #fetchWithTimeout(url, options = {}) {
+      const controller = new AbortController();
+      this.#abortController = controller;
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        return response;
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          throw new Error('timeout');
+        }
+
+        throw new Error('network');
+      } finally {
+        clearTimeout(timeout);
+        this.#abortController = null;
+      }
+    }
+
+    /* ===== Location search ===== */
+
+    #handleLocationInput(e) {
+      const query = e.target.value.trim();
+
+      if (this.#searchTimeout) {
+        clearTimeout(this.#searchTimeout);
+      }
+
+      if (query.length < MIN_SEARCH_LENGTH) {
+        this.#closeSuggestions();
+        return;
+      }
+
+      this.#searchTimeout = setTimeout(() => this.#searchLocation(query), SEARCH_DEBOUNCE_MS);
+    }
+
+    async #searchLocation(query) {
+      const suggestions = this.#elements.suggestions;
+      suggestions.innerHTML = '<li class="starmap__suggestion-status" role="option" aria-disabled="true">Searching\u2026</li>';
+      this.#openSuggestions();
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
+
+        if (response.status === 429) {
+          suggestions.innerHTML = '<li class="starmap__suggestion-status" role="option" aria-disabled="true">Too many requests. Please wait a moment.</li>';
+          return;
+        }
+
+        const results = await response.json();
+        suggestions.innerHTML = '';
+        this.#suggestionResults = results;
+        this.#focusedSuggestionIndex = -1;
+
+        if (results.length === 0) {
+          suggestions.innerHTML = '<li class="starmap__suggestion-status" role="option" aria-disabled="true">No results found</li>';
+          return;
+        }
+
+        for (const result of results) {
+          const parts = result.display_name.split(', ');
+          const mainText = parts[0];
+          const subText = parts.slice(1, 3).join(', ');
+
+          const li = document.createElement('li');
+          li.className = 'starmap__suggestion';
+          li.setAttribute('role', 'option');
+          li.innerHTML = `<div class="starmap__suggestion-main">${this.#escapeHtml(mainText)}</div><div class="starmap__suggestion-sub">${this.#escapeHtml(subText)}</div>`;
+          li.addEventListener('click', () => this.#selectLocation(result));
+          suggestions.appendChild(li);
+        }
+      } catch (err) {
+        suggestions.innerHTML = '<li class="starmap__suggestion-status" role="option" aria-disabled="true">Search failed. Please try again.</li>';
+      }
+    }
+
+    #handleLocationKeydown(e) {
+      const items = this.#elements.suggestions.querySelectorAll('.starmap__suggestion');
+      if (items.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.#focusedSuggestionIndex = Math.min(this.#focusedSuggestionIndex + 1, items.length - 1);
+        this.#updateSuggestionFocus(items);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.#focusedSuggestionIndex = Math.max(this.#focusedSuggestionIndex - 1, 0);
+        this.#updateSuggestionFocus(items);
+      } else if (e.key === 'Enter' && this.#focusedSuggestionIndex >= 0) {
+        e.preventDefault();
+        const result = this.#suggestionResults[this.#focusedSuggestionIndex];
+        if (result) {
+          this.#selectLocation(result);
+        }
+      } else if (e.key === 'Escape') {
+        this.#closeSuggestions();
+      }
+    }
+
+    #updateSuggestionFocus(items) {
+      for (const item of items) {
+        item.classList.remove('starmap__suggestion--focused');
+      }
+
+      if (this.#focusedSuggestionIndex >= 0 && items[this.#focusedSuggestionIndex]) {
+        items[this.#focusedSuggestionIndex].classList.add('starmap__suggestion--focused');
+        items[this.#focusedSuggestionIndex].scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    #selectLocation(result) {
+      const lat = parseFloat(result.lat);
+      const lng = parseFloat(result.lon);
+      const parts = result.display_name.split(', ');
+      const name = parts.slice(0, 2).join(', ');
+
+      this.#state.latitude = lat;
+      this.#state.longitude = lng;
+      this.#state.locationName = name;
+      this.#elements.latInput.value = lat;
+      this.#elements.lngInput.value = lng;
+      this.#elements.locationInput.value = '';
+
+      this.#elements.locationChipText.textContent = name;
+      this.#elements.locationChip.classList.add('starmap__location-chip--visible');
+      this.#elements.locationInput.style.display = 'none';
+      this.#elements.suggestions.querySelector('.starmap__search-icon')?.remove();
+
+      this.#closeSuggestions();
+      this.#updateOverlay();
+    }
+
+    #clearLocation() {
+      this.#state.latitude = null;
+      this.#state.longitude = null;
+      this.#state.locationName = '';
+      this.#elements.latInput.value = '';
+      this.#elements.lngInput.value = '';
+      this.#elements.locationInput.value = '';
+      this.#elements.locationInput.style.display = '';
+      this.#elements.locationChip.classList.remove('starmap__location-chip--visible');
+      this.#elements.locationInput.focus();
+      this.#updateOverlay();
+    }
+
+    #openSuggestions() {
+      this.#elements.suggestions.classList.add('starmap__suggestions--open');
+      this.#elements.locationInput.setAttribute('aria-expanded', 'true');
+    }
+
+    #closeSuggestions() {
+      this.#elements.suggestions.classList.remove('starmap__suggestions--open');
+      this.#elements.locationInput.setAttribute('aria-expanded', 'false');
+      this.#focusedSuggestionIndex = -1;
+      this.#suggestionResults = [];
+    }
+
+    #handleClickOutside(e) {
+      const field = this.#root.querySelector('.starmap__field--location');
+      if (field && !field.contains(e.target)) {
+        this.#closeSuggestions();
+      }
+    }
+
+    /* ===== Overlay ===== */
+
+    #updateOverlay() {
+      const title = this.#elements.titleInput.value || 'THE NIGHT SKY';
+      this.#elements.overlayTitle.textContent = title.toUpperCase();
+
+      this.#elements.overlayLocation.textContent = this.#state.locationName
+        ? this.#state.locationName.toUpperCase()
+        : '';
+
+      const dateStr = this.#elements.dateInput.value;
+      if (dateStr) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d);
+        const formatted = dateObj.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }).toUpperCase();
+        this.#elements.overlayDate.textContent = formatted;
+      }
+
+      if (this.#state.latitude !== null && this.#state.longitude !== null) {
+        const lat = this.#state.latitude;
+        const lng = this.#state.longitude;
+        const latDir = lat >= 0 ? 'N' : 'S';
+        const lngDir = lng >= 0 ? 'E' : 'W';
+        this.#elements.overlayCoords.textContent =
+          `${Math.abs(lat).toFixed(2)}\u00B0${latDir}, ${Math.abs(lng).toFixed(2)}\u00B0${lngDir}`;
+      }
+    }
+
+    /* ===== Generation ===== */
+
+    async #handleSubmit(e) {
+      e.preventDefault();
+      this.#hideError();
+
+      if (!this.#state.latitude || !this.#state.longitude) {
+        this.#showError(ERROR_MESSAGES.location);
+        return;
+      }
+
+      if (!this.#config.apiKey) {
+        this.#showError(ERROR_MESSAGES.api_key);
+        return;
+      }
+
+      const dateStr = this.#elements.dateInput.value;
+      const timeStr = this.#elements.timeInput.value;
+      if (!dateStr || !timeStr) {
+        this.#showError(ERROR_MESSAGES.datetime);
+        return;
+      }
+
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const [hour, minute] = timeStr.split(':').map(Number);
+
+      const payload = {
+        latitude: this.#state.latitude,
+        longitude: this.#state.longitude,
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        timezone_offset: parseInt(this.#elements.tzInput.value, 10),
+        title: this.#elements.titleInput.value || null
+      };
+
+      this.#setGenerating(true);
+
+      try {
+        const response = await this.#fetchWithTimeout(`${this.#config.apiUrl}/api/v1/starmaps/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': this.#config.apiKey
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error('generation');
+        }
+
+        const blob = await response.blob();
+        const imageUrl = URL.createObjectURL(blob);
+        const img = this.#elements.image;
+
+        if (img.src && img.src.startsWith('blob:')) {
+          URL.revokeObjectURL(img.src);
+        }
+
+        img.src = imageUrl;
+        img.classList.add('starmap__image--visible');
+        this.#elements.overlay.classList.add('starmap__overlay--visible');
+        this.#elements.placeholder.classList.add('starmap__placeholder--hidden');
+
+        const cacheId = response.headers.get('X-Cache-Id');
+        if (cacheId) {
+          img.dataset.cacheId = cacheId;
+        }
+
+        this.#state.currentParams = {
+          ...payload,
+          location: this.#state.locationName
+        };
+
+        this.#updateCartButton();
+      } catch (err) {
+        const key = err.message in ERROR_MESSAGES ? err.message : 'generation';
+        this.#showError(ERROR_MESSAGES[key]);
+        this.#elements.placeholder.classList.remove('starmap__placeholder--hidden');
+      } finally {
+        this.#setGenerating(false);
+      }
+    }
+
+    #setGenerating(isGenerating) {
+      const btn = this.#elements.generateBtn;
+      const spinner = this.#elements.spinner;
+
+      if (isGenerating) {
+        this.#elements.image.classList.remove('starmap__image--visible');
+        this.#elements.overlay.classList.remove('starmap__overlay--visible');
+        spinner.classList.add('starmap__spinner--active');
+        this.#elements.placeholder.classList.add('starmap__placeholder--hidden');
+        btn.disabled = true;
+        btn.textContent = 'Generating\u2026';
+      } else {
+        spinner.classList.remove('starmap__spinner--active');
+        btn.disabled = false;
+        btn.textContent = 'Generate Star Map';
+      }
+    }
+
+    /* ===== Cart ===== */
+
+    async #handleAddToCart() {
+      const cacheId = this.#elements.image.dataset.cacheId;
+      if (!cacheId) {
+        this.#showToast(ERROR_MESSAGES.generation, 'error');
+        return;
+      }
+
+      const btn = this.#elements.cartBtn;
+      btn.disabled = true;
+      btn.textContent = 'Adding\u2026';
+
+      try {
+        const saveResponse = await this.#fetchWithTimeout(
+          `${this.#config.apiUrl}/api/v1/starmaps/${cacheId}/save`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Key': this.#config.apiKey
+            },
+            body: JSON.stringify({
+              title: this.#state.currentParams.title
+            })
+          }
+        );
+
+        if (!saveResponse.ok) {
+          throw new Error('cart');
+        }
+
+        const saved = await saveResponse.json();
+        const imageUrl = `${this.#config.apiUrl}/api/v1/starmaps/${saved.id}`;
+        const params = this.#state.currentParams;
+
+        const dateObj = new Date(params.year, params.month - 1, params.day);
+        const formattedDate = dateObj.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+
+        const cartResponse = await this.#fetchWithTimeout('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: parseInt(this.#config.variantId, 10),
+            quantity: 1,
+            properties: {
+              '_starmap_id': saved.id,
+              '_image_url': imageUrl,
+              'Title': params.title || 'The Night Sky',
+              'Location': params.location,
+              'Date': formattedDate,
+              'Coordinates': `${params.latitude.toFixed(4)}\u00B0, ${params.longitude.toFixed(4)}\u00B0`
+            }
+          })
+        });
+
+        if (!cartResponse.ok) {
+          throw new Error('cart');
+        }
+
+        this.#state.lastCartParams = { ...this.#state.currentParams };
+        this.#updateCartButton();
+        this.#showToast('Star map added to cart!', 'success');
+      } catch (err) {
+        const key = err.message in ERROR_MESSAGES ? err.message : 'cart';
+        this.#showToast(ERROR_MESSAGES[key], 'error');
+        btn.disabled = false;
+        btn.textContent = 'Add to Cart';
+      }
+    }
+
+    #updateCartButton() {
+      const btn = this.#elements.cartBtn;
+
+      if (!this.#state.currentParams) {
+        btn.disabled = true;
+        btn.textContent = 'Add to Cart';
+        btn.classList.remove('starmap__btn--cart-added');
+        return;
+      }
+
+      const current = JSON.stringify(this.#state.currentParams);
+      const last = this.#state.lastCartParams ? JSON.stringify(this.#state.lastCartParams) : null;
+
+      if (current === last) {
+        btn.disabled = true;
+        btn.textContent = '\u2713 Added to Cart';
+        btn.classList.add('starmap__btn--cart-added');
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Add to Cart';
+        btn.classList.remove('starmap__btn--cart-added');
+      }
+    }
+
+    /* ===== Error & Toast ===== */
+
+    #showError(message) {
+      const el = this.#elements.error;
+      el.textContent = message;
+      el.classList.add('starmap__error--visible');
+    }
+
+    #hideError() {
+      const el = this.#elements.error;
+      el.textContent = '';
+      el.classList.remove('starmap__error--visible');
+    }
+
+    #showToast(message, type = 'success') {
+      const { toast, toastIcon, toastMessage } = this.#elements;
+
+      if (this.#toastTimeout) {
+        clearTimeout(this.#toastTimeout);
+      }
+
+      toastIcon.textContent = type === 'success' ? '\u2713' : '\u2715';
+      toastMessage.textContent = message;
+      toast.className = `starmap__toast starmap__toast--${type} starmap__toast--visible`;
+
+      this.#toastTimeout = setTimeout(() => {
+        toast.classList.remove('starmap__toast--visible');
+      }, TOAST_DURATION_MS);
+    }
+
+    /* ===== Utilities ===== */
+
+    #formatDateValue(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    #formatTimeValue(date) {
+      const h = String(date.getHours()).padStart(2, '0');
+      const m = String(date.getMinutes()).padStart(2, '0');
+      return `${h}:${m}`;
+    }
+
+    #escapeHtml(str) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+  }
+
+  /* ===== Section lifecycle ===== */
+
+  const instances = new Map();
+
+  const initSection = () => {
+    for (const el of document.querySelectorAll('.starmap:not([data-initialized])')) {
+      el.setAttribute('data-initialized', 'true');
+      instances.set(el.dataset.sectionId, new StarMapWidget(el));
+    }
+  };
+
+  /* Shopify section rendering events */
+  if (Shopify && Shopify.designMode) {
+    document.addEventListener('shopify:section:load', (e) => {
+      const root = e.target.querySelector('.starmap');
+      if (root) {
+        root.setAttribute('data-initialized', 'true');
+        instances.set(root.dataset.sectionId, new StarMapWidget(root));
+      }
+    });
+
+    document.addEventListener('shopify:section:unload', (e) => {
+      const root = e.target.querySelector('.starmap');
+      if (root) {
+        const id = root.dataset.sectionId;
+        const instance = instances.get(id);
+        if (instance) {
+          instance.destroy();
+          instances.delete(id);
+        }
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSection);
+  } else {
+    initSection();
+  }
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "t:sections.starmap_generator.name",
+  "tag": "section",
+  "class": "starmap-section",
+  "settings": [
+    {
+      "type": "product",
+      "id": "product",
+      "label": "t:sections.starmap_generator.settings.product.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.starmap_generator.settings.content_header"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.starmap_generator.settings.heading.label",
+      "default": "Design your map"
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "t:sections.starmap_generator.settings.description.label",
+      "default": "Enter the details of your special moment to generate your unique star map."
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.starmap_generator.presets.name"
+    }
+  ]
+}
+{% endschema %}
