@@ -1,5 +1,6 @@
 """Star map image generation using Skyfield astronomy library."""
 import io
+import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -10,6 +11,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from skyfield.api import Star, load, wgs84, Loader
 from skyfield.data import hipparcos
+from skyfield.errors import EphemerisRangeError
+
+logger = logging.getLogger(__name__)
 
 # Data directory for ephemeris files
 DATA_DIR = Path(__file__).parent.parent.parent / "data"
@@ -33,10 +37,12 @@ class StarMapGenerator:
         self._eph = None
     
     def _load_stars(self):
-        """Load Hipparcos star catalog (cached)."""
+        """Load Hipparcos star catalog (cached), dropping rows with NaN magnitude or position."""
         if self._stars is None:
             with load.open(hipparcos.URL) as f:
-                self._stars = hipparcos.load_dataframe(f)
+                df = hipparcos.load_dataframe(f)
+            self._stars = df[df['magnitude'].notna() & df['ra_degrees'].notna() & df['dec_degrees'].notna()]
+            logger.info("Loaded %d stars (dropped %d with NaN data)", len(self._stars), len(df) - len(self._stars))
         return self._stars
     
     def _load_ephemeris(self):
@@ -82,8 +88,14 @@ class StarMapGenerator:
         # Compute star positions
         star_positions = Star.from_dataframe(stars)
         astrometric = location.at(t).observe(star_positions)
-        apparent = astrometric.apparent()
-        alt, az, _ = apparent.altaz()
+
+        try:
+            apparent = astrometric.apparent()
+            alt, az, _ = apparent.altaz()
+        except EphemerisRangeError:
+            # Fallback: skip gravitational deflection (< 1.7 arcsec difference, invisible on map)
+            logger.warning("apparent() failed with EphemerisRangeError, falling back to astrometric positions")
+            alt, az, _ = astrometric.altaz()
         
         alt_deg = alt.degrees
         az_deg = az.degrees
