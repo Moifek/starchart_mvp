@@ -49,7 +49,6 @@
       {% comment %} Overlay with title/location/date {% endcomment %}
       <div class="starmap__overlay" data-starmap-overlay aria-hidden="true">
         <div class="starmap__overlay-rule"></div>
-        <div class="starmap__overlay-title" data-starmap-overlay-title></div>
         <div class="starmap__overlay-location" data-starmap-overlay-location></div>
         <div class="starmap__overlay-date" data-starmap-overlay-date></div>
         <div class="starmap__overlay-coords" data-starmap-overlay-coords></div>
@@ -98,7 +97,7 @@
           {{ 'sections.starmap_generator.fields.location' | t }}
         </label-->
         <label class="starmap__label" for="StarmapLocation-{{ section.id }}">
-          Locales
+          Location
         </label>
         <div class="starmap__location-wrap">
           <!--input
@@ -1150,9 +1149,6 @@
     /* ===== Overlay ===== */
 
     #updateOverlay() {
-      const title = this.#elements.titleInput.value || 'THE NIGHT SKY';
-      this.#elements.overlayTitle.textContent = title.toUpperCase();
-
       this.#elements.overlayLocation.textContent = this.#state.locationName
         ? this.#state.locationName.toUpperCase()
         : '';

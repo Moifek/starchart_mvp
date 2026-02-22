@@ -4,6 +4,8 @@ venv/
 __pycache__/
 *.pyc
 
+VPS_SETUP.md
+
 # Data files
 data/cache.db
 data/*.bsp
