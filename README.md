@@ -1,87 +1,74 @@
-# StarChart MVP
+# StarChart
 
-A FastAPI-based REST API that generates circular star map images showing the night sky for a specific date and GPS location.
+> A custom star map generator that captures the night sky exactly as it looked from any place on Earth, at any moment in time — printed and shipped as a keepsake.
 
-## Features
+StarChart is the backend powering a live print-on-demand web app. Customers choose a special date (a wedding, a birth, a first meeting), enter their location, and the service renders an accurate star map of that night's sky. The image is then used to produce a printed graphic shipped directly to them.
 
-- **Generate star maps on-demand** - Given lat/lon/date/time, produce a PNG image
-- **Two-tier storage:**
-  - SQLite cache (local) for fast, short-term storage
-  - PostgreSQL for permanent storage of saved images
-- **API key authentication**
-- **Returns images as raw bytes** (`image/png`)
+The backend integrates with NASA's astronomical data (via JPL's planetary ephemeris and the Hipparcos star catalog) to compute real star positions with scientific accuracy — not an approximation or illustration.
 
-## Quick Start
+---
 
-```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
+## How it works
 
-# Install dependencies
-pip install -r requirements.txt
+1. A customer fills in their date, time, and location on the storefront
+2. The API computes the exact star positions visible from that spot at that moment, using NASA ephemeris data
+3. A high-resolution circular star map is rendered and returned as a PNG
+4. The image is attached to their order and sent to print
 
-# Set up environment
-cp .env.example .env
-# Edit .env with your values
+Repeat requests for the same date/location are served instantly from cache.
 
-# Run development server
-python run.py
-# Or: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+## Tech stack
 
-## API Endpoints
+| Layer | Technology |
+|---|---|
+| API | Python / FastAPI |
+| Astronomy engine | Skyfield + NASA JPL DE421 ephemeris + Hipparcos star catalog |
+| Rendering | Matplotlib |
+| Cache | SQLite (short-term deduplication) |
+| Storage | PostgreSQL (permanent order images) |
+| Storefront integration | Shopify Liquid + vanilla JS |
 
-All endpoints require `X-API-Key` header.
+## API Overview
+
+All endpoints require an `X-API-Key` header.
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/starmaps/generate` | Generate star map image |
-| POST | `/api/v1/starmaps/{cache_id}/save` | Save to permanent storage |
-| GET | `/api/v1/starmaps/{id}` | Get saved star map image |
-| GET | `/api/v1/starmaps` | List saved star maps |
-| DELETE | `/api/v1/starmaps/{id}` | Delete saved star map |
-| GET | `/health` | Health check |
+|---|---|---|
+| `POST` | `/api/v1/starmaps/generate` | Generate a star map image |
+| `POST` | `/api/v1/starmaps/{cache_id}/save` | Save a generated map permanently |
+| `GET` | `/api/v1/starmaps/{id}` | Retrieve a saved map |
+| `GET` | `/api/v1/starmaps` | List saved maps |
+| `DELETE` | `/api/v1/starmaps/{id}` | Delete a saved map |
+| `GET` | `/health` | Health check |
 
-## Example Usage
-
-```bash
-# Generate a star map
-curl -X POST http://localhost:8000/api/v1/starmaps/generate \
-  -H "X-API-Key: your-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "latitude": 40.7128,
-    "longitude": -74.0060,
-    "year": 2024,
-    "month": 1,
-    "day": 15,
-    "hour": 22,
-    "minute": 0,
-    "timezone_offset": -5,
-    "title": "The Night We Met"
-  }' --output starmap.png
-
-# Save the generated map (using cache_id from X-Cache-Id header)
-curl -X POST http://localhost:8000/api/v1/starmaps/{cache_id}/save \
-  -H "X-API-Key: your-api-key"
+**Example generate request:**
+```json
+{
+  "latitude": 48.8566,
+  "longitude": 2.3522,
+  "year": 2019,
+  "month": 6,
+  "day": 21,
+  "hour": 23,
+  "minute": 30,
+  "timezone_offset": 2,
+  "title": "The Night We Met"
+}
 ```
 
-## Environment Variables
+Returns a `image/png` with an `X-Cache-Id` header for saving the result.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `API_KEY` | API authentication key | Required |
-| `DATABASE_URL` | PostgreSQL connection string | Required |
-| `CACHE_DATABASE_PATH` | SQLite cache file path | `data/cache.db` |
-| `CACHE_MAX_AGE_HOURS` | Cache entry TTL | `24` |
-| `HOST` | Server host | `0.0.0.0` |
-| `PORT` | Server port | `8000` |
-| `DEBUG` | Enable debug mode | `false` |
+## Running locally
 
-## Notes
+```bash
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # set API_KEY and DATABASE_URL
+python run.py
+```
 
-- First run downloads ~70MB of astronomy data (Hipparcos catalog, JPL ephemeris)
-- Image generation takes 2-5 seconds depending on hardware
-- Coordinates rounded to 4 decimal places (~11m precision) for caching
+NASA ephemeris data (~70 MB) downloads automatically on first run. Map generation takes 2–5 seconds per request.
 
+## Shopify integration
+
+The repo includes a Shopify Liquid section (`sections/starmap-generator.liquid`) — a two-panel UI with a live star map preview and a date/location form. It reads API credentials from Shopify theme settings and attaches the generated image to the cart item at checkout.
